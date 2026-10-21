@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f8f5ef">
+  <meta name="description" content="Flipbook is your little animation studio. Draw with playful brushes, bring frames to life, add your own sounds, and keep every idea.">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <title>Flipbook · a little animation studio</title>
+  <link rel="icon" href="./favicon.svg" type="image/svg+xml">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+<div class="app" id="app">
+  <header class="topbar">
+    <a class="brand" href="./" aria-label="Flipbook home"><img src="./favicon.svg" width="40" height="40" alt=""><span>flipbook<span class="brand-dot">.</span></span></a>
+    <span class="tagline">a little animation studio</span>
+    <div class="project-heading"><input id="project-title" value="A little happy bounce" maxlength="80" aria-label="Animation name" spellcheck="false"><span id="save-status" role="status"><i></i>Opening your studio…</span></div>
+    <div class="header-actions"><button id="shelf" class="button quiet"><svg><use href="./icons.svg#folder"/></svg><span>My flipbooks</span></button><button id="export" class="button primary"><svg><use href="./icons.svg#export"/></svg><span>Keep it</span></button></div>
+  </header>
+  <main class="workspace" aria-label="Animation studio">
+    <nav class="tools" aria-label="Drawing tools">
+      <span class="eyebrow rail-label">MAKE</span>
+      <button class="tool active" data-tool="draw" aria-pressed="true" title="Draw · B"><svg><use href="./icons.svg#pen"/></svg><span>Draw</span></button>
+      <button class="tool" data-tool="eraser" aria-pressed="false" title="Eraser · E"><svg><use href="./icons.svg#eraser"/></svg><span>Erase</span></button>
+      <button class="tool" data-tool="fill" aria-pressed="false" title="Fill this layer · F"><svg><use href="./icons.svg#fill"/></svg><span>Fill</span></button>
+      <button class="tool" data-tool="shape" aria-pressed="false" title="Shapes · S"><svg><use href="./icons.svg#shapes"/></svg><span>Shapes</span></button>
+      <button class="tool" data-tool="text" aria-pressed="false" title="Add text · T"><svg><use href="./icons.svg#text"/></svg><span>Text</span></button>
+      <button class="tool" data-tool="picker" aria-pressed="false" title="Pick a color · I"><svg><use href="./icons.svg#picker"/></svg><span>Pick</span></button>
+      <span class="tool-divider"></span>
+      <button class="tool" data-tool="hand" aria-pressed="false" title="Move the view · H"><svg><use href="./icons.svg#hand"/></svg><span>Pan</span></button>
+      <button class="tool" id="settings-toggle" title="Brush and layer settings" aria-expanded="false"><svg><use href="./icons.svg#sliders"/></svg><span>Tools</span></button>
+      <button id="help" class="icon-button help-button" aria-label="How to animate" title="How to animate"><svg><use href="./icons.svg#help"/></svg></button>
+    </nav>
+    <section class="drawing-area" aria-label="Drawing area">
+      <div class="canvas-top"><span class="studio-tag"><i></i>SMALL FRAMES. BIG IDEAS.</span><div class="canvas-actions"><button id="onion" class="chip" aria-pressed="true" title="See the frames before and after this one · O"><svg><use href="./icons.svg#onion"/></svg><span>Onion skin</span></button><button id="mute" class="icon-button" aria-label="Mute animation sounds" aria-pressed="false" title="Animation sounds"><svg><use href="./icons.svg#sound"/></svg></button><button id="fullscreen" class="icon-button" aria-label="Full screen" title="Full screen"><svg><use href="./icons.svg#expand"/></svg></button></div></div>
+      <div id="viewport" class="viewport" tabindex="0" role="application" aria-label="Animation drawing canvas. Draw with your finger, mouse, or pen. Use two fingers to zoom and pan."><canvas id="paper" width="960" height="600" aria-label="Current animation frame"></canvas><span class="paper-caption" id="paper-caption">A little happy bounce · 960 × 600</span></div>
+      <div class="canvas-bottom"><div class="history"><button id="undo" class="icon-button" aria-label="Undo" title="Undo · Ctrl/⌘ Z" disabled><svg><use href="./icons.svg#undo"/></svg></button><button id="redo" class="icon-button" aria-label="Redo" title="Redo · Ctrl/⌘ Shift Z" disabled><svg><use href="./icons.svg#redo"/></svg></button></div><span class="gesture-hint">A little doodle. A little movement. A whole lot of you.</span><div class="zoom-controls"><button id="zoom-out" class="icon-button" aria-label="Zoom out"><svg><use href="./icons.svg#minus"/></svg></button><button id="zoom-reset" class="zoom-value" title="Fit drawing to view">100%</button><button id="zoom-in" class="icon-button" aria-label="Zoom in"><svg><use href="./icons.svg#plus"/></svg></button></div></div>
+      <div class="color-bar"><span class="eyebrow color-label">A LITTLE COLOR</span><div id="swatches" class="swatches" role="group" aria-label="Drawing colors"></div><label class="custom-color" title="Choose any color"><input id="custom-color" type="color" value="#32243f" aria-label="Choose any drawing color"><svg><use href="./icons.svg#plus"/></svg></label><span class="color-divider"></span><button id="new-project" class="new-button"><svg><use href="./icons.svg#new"/></svg><span>New flipbook</span></button></div>
+    </section>
+    <aside class="settings" id="settings" aria-label="Brushes and layers">
+      <div class="settings-top"><span class="eyebrow">YOUR TOOLBOX</span><button id="close-settings" class="icon-button" aria-label="Close toolbox"><svg><use href="./icons.svg#close"/></svg></button></div>
+      <div class="brush-title"><span class="brush-icon"><svg><use href="./icons.svg#pen"/></svg></span><div><h1 id="tool-name">Ink pen</h1><p id="tool-hint">Smooth, confident lines</p></div></div>
+      <div class="brush-grid" id="brush-grid" aria-label="Brush types"></div>
+      <div id="shape-options" hidden><label class="field-label" for="shape-type">Pick a shape</label><select id="shape-type"><option value="ellipse">Circle / ellipse</option><option value="rectangle">Square / rectangle</option><option value="line">Straight line</option><option value="star">Star</option></select><label class="check-row"><input id="shape-fill" type="checkbox"> Fill the shape</label></div>
+      <div class="brush-preview"><canvas id="brush-preview" width="360" height="68" aria-label="Preview of your brush"></canvas></div>
+      <div class="range-heading"><label for="size">Size</label><output id="size-value">7 px</output></div><input id="size" type="range" min="1" max="100" value="7">
+      <div class="range-heading"><label for="opacity">Opacity</label><output id="opacity-value">100%</output></div><input id="opacity" type="range" min="5" max="100" value="100">
+      <label class="check-row smooth"><input id="stabilize" type="checkbox" checked> Steady lines <span title="Gently smooths wobbly movements">✧</span></label>
+      <div class="layer-heading"><span class="eyebrow">LAYERS</span><button id="add-layer" class="icon-button small" aria-label="Add a layer"><svg><use href="./icons.svg#plus"/></svg></button></div><div id="layers" class="layers"></div>
+      <div class="layer-actions"><button id="layer-options" class="text-button"><svg><use href="./icons.svg#sliders"/></svg>Layer options</button><button id="import-image" class="icon-button small" title="Add a picture to this frame" aria-label="Import a picture"><svg><use href="./icons.svg#image"/></svg></button></div>
+      <label class="background-row">Paper color <input type="color" id="paper-color" value="#fffdf7" aria-label="Paper color"></label>
+      <div class="toolbox-note"><span>✳</span><p>Every great story<br>starts with a scribble.</p></div>
+      <button id="toolbox-help" class="text-button toolbox-help"><svg><use href="./icons.svg#help"/></svg>How to animate</button>
+    </aside>
+    <section class="timeline" aria-label="Animation frames">
+      <div class="timeline-top"><div class="timeline-title"><svg><use href="./icons.svg#frames"/></svg><strong>Your little story</strong><span id="frame-count">12 frames</span></div><div class="playback"><button id="previous" class="icon-button" aria-label="Previous frame" title="Previous frame · ←"><svg><use href="./icons.svg#previous"/></svg></button><button id="play" class="play-button" aria-label="Play animation" aria-pressed="false"><svg><use href="./icons.svg#play"/></svg><span>Play</span></button><button id="next" class="icon-button" aria-label="Next frame" title="Next frame · →"><svg><use href="./icons.svg#next"/></svg></button><span class="playback-divider"></span><label class="fps-label"><select id="fps" aria-label="Animation speed"><option value="4">4 fps</option><option value="6">6 fps</option><option value="8">8 fps</option><option value="10" selected>10 fps</option><option value="12">12 fps</option><option value="15">15 fps</option><option value="24">24 fps</option><option value="30">30 fps</option></select></label><button id="loop" class="icon-button" aria-label="Loop animation" aria-pressed="true" title="Loop animation"><svg><use href="./icons.svg#loop"/></svg></button></div><button id="sounds" class="sound-button"><svg><use href="./icons.svg#music"/></svg><span>Add sound</span><span class="tiny-dot"></span></button></div>
+      <div class="filmstrip-wrap"><div class="filmstrip" id="filmstrip" role="list" aria-label="Animation frame list"></div><button id="add-frame" class="add-frame" title="Add a blank frame · N"><svg><use href="./icons.svg#plus"/></svg><span>Add frame</span></button></div>
+      <div class="timeline-bottom"><span id="frame-position">FRAME 01 OF 12</span><div class="frame-actions"><button id="duplicate-frame" class="text-button" title="Duplicate frame · D"><svg><use href="./icons.svg#duplicate"/></svg><span>Duplicate</span></button><button id="frame-options" class="text-button"><svg><use href="./icons.svg#sliders"/></svg><span>Frame options</span></button><button id="delete-frame" class="icon-button small" aria-label="Delete current frame" title="Delete frame"><svg><use href="./icons.svg#trash"/></svg></button></div><span id="duration">1.2 seconds of possibility</span></div>
+    </section>
+  </main>
+  <footer class="footer"><span><i></i>Made for making. No account needed.</span><span>Your imagination, in motion. <b>✧</b></span></footer>
+</div>
+<dialog id="modal" aria-labelledby="modal-title"><div class="modal-top"><span class="eyebrow" id="modal-eyebrow">A LITTLE MORE MAGIC</span><button id="close-modal" class="icon-button" aria-label="Close dialog"><svg><use href="./icons.svg#close"/></svg></button></div><div id="modal-content"></div></dialog>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<input type="file" id="project-file" accept=".flipbook,application/json" hidden>
+<input type="file" id="image-file" accept="image/png,image/jpeg,image/webp" hidden>
+<noscript><p class="no-script">Flipbook needs JavaScript to bring your drawings to life. Enable JavaScript, then reload.</p></noscript>
+<script type="module" src="./app.js"></script>
+</body>
+</html>
