@@ -9,7 +9,8 @@ import { download, filename, png, exportGIF, exportVideo, exportFrames, videoTyp
 const $=id=>document.getElementById(id),icon=name=>`<svg aria-hidden="true"><use href="./icons.svg#${name}"/></svg>`;
 const escape=text=>String(text).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const renderer=new Renderer(),audio=new AudioStudio(),mic=new Microphone(),history=new History();
-let project=starterProject(),index=0,layer=project.layers[0].id,brush='pen',revision=0,savedRevision=-1,backupRevision=-1,saveTimer=0,saveChain=Promise.resolve(),toastTimer=0,playing=false,playRaf=0,playStart=0,playOffset=0,playSession=0,busy=false,exportController=null,modalCleanup=null,ready=false;
+let project=newProject(),index=0,layer=project.layers[0].id,brush='pen',revision=0,savedRevision=-1,backupRevision=-1,saveTimer=0,saveChain=Promise.resolve(),toastTimer=0,playing=false,playRaf=0,playStart=0,playOffset=0,playSession=0,busy=false,exportController=null,modalCleanup=null,ready=false;
+const brushSizes=Object.fromEntries(Object.entries(BRUSHES).map(([id,info])=>[id,info.size]));
 const frameNodes=new Map();let thumbnailGeneration=0;
 function toast(message){$('toast').textContent=message;$('toast').classList.add('visible');clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').classList.remove('visible'),4400);}
 function errorMessage(error){if(error?.name==='AbortError')toast('Export cancelled. Your flipbook is safe.');else toast(error?.message??'Something went wrong. Please try again.');}
@@ -40,8 +41,9 @@ async function replaceProject(next,{preserve=true}={}){
 }
 
 function setColor(color){studio.settings.color=color;$('custom-color').value=color;for(const el of $('swatches').children)el.setAttribute('aria-pressed',el.dataset.color===color);drawBrushPreview();}
+function syncSizeControl(value){const next=clamp(Math.round(Number(value)||studio.settings.size),1,100);studio.settings.size=next;if(Object.hasOwn(BRUSHES,studio.settings.tool))brushSizes[studio.settings.tool]=next;else brushSizes[brush]=next;$('size').value=String(next);$('size-value').textContent=`${next} px`;drawBrushPreview();}
 function selectTool(tool){
-  stopPlayback();studio.cancelGesture();if(tool==='draw')tool=brush;studio.settings.tool=tool;$('viewport').dataset.tool=tool;
+  stopPlayback();studio.cancelGesture();if(tool==='draw')tool=brush;studio.settings.tool=tool;$('viewport').dataset.tool=tool;if(Object.hasOwn(BRUSHES,tool)){const nextSize=brushSizes[tool]??BRUSHES[tool].size;studio.settings.size=nextSize;$('size').value=String(nextSize);$('size-value').textContent=`${nextSize} px`;}
   const main=Object.hasOwn(BRUSHES,tool)&&tool!=='eraser'?'draw':tool;
   document.querySelectorAll('[data-tool]').forEach(el=>{if(!el.classList.contains('tool'))return;const active=el.dataset.tool===main;el.classList.toggle('active',active);el.setAttribute('aria-pressed',active);});
   const info=BRUSHES[tool]??{name:{fill:'Color fill',shape:'Little shapes',text:'Say something',picker:'Color picker',hand:'Move the view',move:'Move this layer'}[tool]??'Drawing tool',hint:{fill:'Fill a closed space on this layer',shape:'Drag to make a shape',text:'Tap the paper to add words',picker:'Tap a color on your drawing',hand:'Drag to pan. Pinch to zoom.',move:'Drag to move all art on this layer'}[tool]??''};
@@ -181,9 +183,9 @@ function openHelp(){openModal('Small steps. Big stories.',`<div class="help-step
 // UI events are bound once; drawing itself stays outside DOM updates.
 for(const color of PALETTE){const button=document.createElement('button');button.className='swatch';button.dataset.color=color;button.style.setProperty('--swatch',color);button.setAttribute('aria-label',`Use ${color}`);button.setAttribute('aria-pressed',color===studio.settings.color);button.onclick=()=>setColor(color);$('swatches').append(button);}
 const brushGlyph={pen:'╱',pencil:'╱',marker:'▰',crayon:'▧',watercolor:'◕',airbrush:'◌',neon:'✧',pixel:'▦'},brushShort={pen:'Ink',pencil:'Pencil',marker:'Marker',crayon:'Crayon',watercolor:'Wash',airbrush:'Air',neon:'Glow',pixel:'Pixel'};
-for(const [id,info]of Object.entries(BRUSHES)){if(id==='eraser')continue;const button=document.createElement('button');button.className='brush-choice';button.dataset.brush=id;button.setAttribute('aria-label',info.name);button.setAttribute('aria-pressed',id===brush);button.title=info.hint;button.innerHTML=`<span aria-hidden="true">${brushGlyph[id]}</span><span>${brushShort[id]}</span>`;button.onclick=()=>{brush=id;studio.settings.size=info.size;$('size').value=info.size;$('size-value').textContent=`${info.size} px`;selectTool('draw');};$('brush-grid').append(button);}
+for(const [id,info]of Object.entries(BRUSHES)){if(id==='eraser')continue;const button=document.createElement('button');button.className='brush-choice';button.dataset.brush=id;button.setAttribute('aria-label',info.name);button.setAttribute('aria-pressed',id===brush);button.title=info.hint;button.innerHTML=`<span aria-hidden="true">${brushGlyph[id]}</span><span>${brushShort[id]}</span>`;button.onclick=()=>{brush=id;selectTool('draw');};$('brush-grid').append(button);}
 document.querySelectorAll('.tool[data-tool]').forEach(button=>button.onclick=()=>selectTool(button.dataset.tool));
-$('size').oninput=e=>{studio.settings.size=Number(e.target.value);$('size-value').textContent=`${e.target.value} px`;drawBrushPreview();};$('opacity').oninput=e=>{studio.settings.opacity=Number(e.target.value)/100;$('opacity-value').textContent=`${e.target.value}%`;drawBrushPreview();};$('stabilize').onchange=e=>studio.settings.stabilize=e.target.checked;$('shape-type').onchange=e=>studio.settings.shape=e.target.value;$('shape-fill').onchange=e=>studio.settings.fill=e.target.checked;$('custom-color').oninput=e=>setColor(e.target.value);
+$('size').oninput=$('size').onchange=e=>syncSizeControl(e.target.value);$('opacity').oninput=$('opacity').onchange=e=>{studio.settings.opacity=Number(e.target.value)/100;$('opacity-value').textContent=`${e.target.value}%`;drawBrushPreview();};$('stabilize').onchange=e=>studio.settings.stabilize=e.target.checked;$('shape-type').onchange=e=>studio.settings.shape=e.target.value;$('shape-fill').onchange=e=>studio.settings.fill=e.target.checked;$('custom-color').oninput=e=>setColor(e.target.value);
 $('project-title').onchange=e=>{commit({...project,title:e.target.value.trim()||'My little flipbook'});};$('paper-color').onchange=e=>commit({...project,background:e.target.value});
 $('settings-toggle').onclick=()=>{const open=$('settings').classList.toggle('open');$('settings-toggle').setAttribute('aria-expanded',open);};$('close-settings').onclick=()=>{$('settings').classList.remove('open');$('settings-toggle').setAttribute('aria-expanded','false');};
 $('undo').onclick=()=>restoreHistory();$('redo').onclick=()=>restoreHistory(true);$('zoom-in').onclick=()=>studio.setZoom(studio.zoom*1.25);$('zoom-out').onclick=()=>studio.setZoom(studio.zoom/1.25);$('zoom-reset').onclick=()=>studio.resetView();
@@ -208,15 +210,15 @@ document.addEventListener('keydown',e=>{
   if(e.ctrlKey||e.metaKey){if(key==='s'){e.preventDefault();try{projectDownload();}catch(error){errorMessage(error);}}return;}
   if(key===' '){e.preventDefault();studio.space=true;return;}
   const tool={b:'draw',e:'eraser',f:'fill',s:'shape',t:'text',i:'picker',h:'hand'}[key];if(tool){e.preventDefault();selectTool(tool);return;}
-  if(key==='enter'){e.preventDefault();startPlayback();}if(key==='arrowleft'){e.preventDefault();selectFrame(Math.max(0,index-1));}if(key==='arrowright'){e.preventDefault();selectFrame(Math.min(project.frames.length-1,index+1));}if(key==='n')newFrame();if(key==='d')newFrame(true);if(key==='o')$('onion').click();if(key==='0')studio.resetView();if(key==='?')openHelp();if(key==='['||key===']'){studio.settings.size=clamp(studio.settings.size+(key===']'?2:-2),1,100);$('size').value=studio.settings.size;$('size-value').textContent=`${studio.settings.size} px`;drawBrushPreview();}if(key==='escape')stopPlayback();
+  if(key==='enter'){e.preventDefault();startPlayback();}if(key==='arrowleft'){e.preventDefault();selectFrame(Math.max(0,index-1));}if(key==='arrowright'){e.preventDefault();selectFrame(Math.min(project.frames.length-1,index+1));}if(key==='n')newFrame();if(key==='d')newFrame(true);if(key==='o')$('onion').click();if(key==='0')studio.resetView();if(key==='?')openHelp();if(key==='['||key===']')syncSizeControl(studio.settings.size+(key===']'?2:-2));if(key==='escape')stopPlayback();
 });
 document.addEventListener('keyup',e=>{if(e.code==='Space')studio.space=false;});window.addEventListener('blur',()=>{studio.space=false;studio.cancelGesture();});
 document.addEventListener('visibilitychange',()=>{if(document.hidden){stopPlayback();mic.stop(true);if($('record')){$('record').disabled=false;$('record').classList.remove('recording');$('record').innerHTML=icon('mic')+'<span>Record your own sound</span>';$('record-info').textContent='The microphone stopped when you left Flipbook. Tap Record to start a new sound.';}studio.cancelGesture();saveNow().catch(()=>{});}});window.addEventListener('pagehide',()=>{mic.stop(true);audio.stop();saveNow().catch(()=>{});});window.addEventListener('beforeunload',e=>{if(savedRevision!==revision&&backupRevision!==revision){e.preventDefault();e.returnValue='';}});
 
 async function boot(){
-  try{await document.fonts?.ready;const records=await listProjects();if(records.length){const last=await loadProject(records[0].id);const checked=validateProject(last.project);await renderer.prepare(checked);project=checked;layer=project.layers[0].id;savedRevision=revision;}}
+  try{await document.fonts?.ready;}
   catch(error){toast('Device saves could not be opened. Use Keep it to download a backup.');}
-  ready=true;render();selectTool('draw');studio.resetView();if(savedRevision===revision)$('save-status').innerHTML='<i></i>Saved on this device';else scheduleSave();
+  ready=true;render();selectTool('draw');studio.resetView();requestAnimationFrame(()=>studio.resetView());scheduleSave();
   if('serviceWorker'in navigator&&location.protocol==='https:')navigator.serviceWorker.register('./sw.js').catch(()=>{});
 }
 boot();

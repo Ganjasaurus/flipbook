@@ -7,10 +7,10 @@ export class Studio {
     this.settings={tool:'pen',color:'#32243f',size:7,opacity:1,shape:'ellipse',fill:false,stabilize:true};
     viewport.addEventListener('pointerdown',e=>this.down(e));viewport.addEventListener('pointermove',e=>this.move(e));viewport.addEventListener('pointerup',e=>this.up(e));viewport.addEventListener('pointercancel',()=>this.cancelGesture());viewport.addEventListener('lostpointercapture',e=>{if(this.pointers.has(e.pointerId))this.cancelGesture();});viewport.addEventListener('contextmenu',e=>e.preventDefault());
     viewport.addEventListener('wheel',e=>{e.preventDefault();if(this.playing)return;this.setZoom(this.zoom*Math.exp(-e.deltaY*.0015),e.clientX,e.clientY);},{passive:false});
-    this.resizeObserver=new ResizeObserver(()=>this.fit());this.resizeObserver.observe(viewport);
+    this.resizeObserver=new ResizeObserver(()=>this.fit());this.resizeObserver.observe(viewport);globalThis.window?.addEventListener?.('resize',()=>this.fit());
   }
   setProject(project,index,layer){const resize=!this.project||this.project.width!==project.width||this.project.height!==project.height;this.project=project;this.index=index;this.layer=layer;if(resize){this.paper.width=project.width;this.paper.height=project.height;this.fit();}this.requestDraw();}
-  fit(){if(!this.project)return;const r=this.viewport.getBoundingClientRect();this.baseScale=Math.max(.05,Math.min((r.width-64)/this.project.width,(r.height-76)/this.project.height));this.transform();}
+  fit(){if(!this.project)return;const r=this.viewport.getBoundingClientRect();const padX=Math.min(64,Math.max(16,r.width*.08)),padY=Math.min(76,Math.max(20,r.height*.12));this.baseScale=r.width>0&&r.height>0?Math.max(.05,Math.min((r.width-padX)/this.project.width,(r.height-padY)/this.project.height)):1;this.transform();}
   transform(){const scale=(this.baseScale??1)*this.zoom;this.paper.style.width=`${this.project.width*scale}px`;this.paper.style.height=`${this.project.height*scale}px`;this.paper.style.transform=`translate(calc(-50% + ${this.pan.x}px), calc(-50% + ${this.pan.y}px))`;this.callbacks.onZoom?.(this.zoom);}
   setZoom(value,x,y){const next=clamp(value,.25,8),r=this.viewport.getBoundingClientRect(),cx=(x??r.left+r.width/2)-(r.left+r.width/2),cy=(y??r.top+r.height/2)-(r.top+r.height/2),ratio=next/this.zoom;this.pan.x=cx-(cx-this.pan.x)*ratio;this.pan.y=cy-(cy-this.pan.y)*ratio;this.zoom=next;this.transform();}
   resetView(){this.zoom=1;this.pan={x:0,y:0};this.fit();}
