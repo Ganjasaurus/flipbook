@@ -3,7 +3,7 @@ import { clamp } from './model.js';
 export function canvas(width, height) {
   const c = document.createElement('canvas'); c.width = width; c.height = height; return c;
 }
-export const context = c => c.getContext('2d', { willReadFrequently: true });
+export const context = (c, willRead = false) => c.getContext('2d', willRead ? { willReadFrequently: true } : undefined);
 function random(seed) { let s = seed | 0; return () => { s = Math.imul(s ^ s >>> 16, 0x45d9f3b); s = Math.imul(s ^ s >>> 16, 0x45d9f3b); return ((s ^= s >>> 16) >>> 0) / 4294967296; }; }
 
 export function stamp(ctx, op, point, index = 0) {
