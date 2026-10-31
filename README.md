@@ -72,5 +72,6 @@ Browser visual QA, hardware microphone recordings, actual MediaRecorder video en
 - `dist/storage.js`: transactional local collection.
 - `dist/starter.js`: original editable starter artwork.
 - `dist/style.css`: desktop, tablet, portrait/landscape phone, safe-area, keyboard-focus, and reduced-motion styles.
+- `dist/console.js` and `dist/console-kit.js`: Xbox One (Edge on the console) support. On the console only: TV-size text (`html.console-kit` rules at the end of `style.css`), Edge's own right-click menu over the canvas, and a dismissible "works best on a computer or tablet" note. `console-kit.js` is the shared kit, copied unchanged.
 
 DM Sans is distributed under the SIL Open Font License (`dist/fonts/OFL.txt`). gifenc is distributed under MIT (`dist/vendor/GIFENC-LICENSE.md`).

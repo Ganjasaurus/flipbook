@@ -1,11 +1,12 @@
 import { canvas, context, stamp, strokeSegment, renderOperation } from './drawing.js';
 import { BRUSHES, clamp } from './model.js';
+import { allowContextMenu } from './console-kit.js';
 
 export class Studio {
   constructor(viewport,paper,renderer,callbacks={}){
     this.viewport=viewport;this.paper=paper;this.renderer=renderer;this.callbacks=callbacks;this.ctx=context(paper);this.zoom=1;this.pan={x:0,y:0};this.pointers=new Map();this.drawing=null;this.gesture=null;this.raf=0;this.playing=false;this.space=false;this.onion=true;
     this.settings={tool:'pen',color:'#32243f',size:7,opacity:1,shape:'ellipse',fill:false,stabilize:true};
-    viewport.addEventListener('pointerdown',e=>this.down(e));viewport.addEventListener('pointermove',e=>this.move(e));viewport.addEventListener('pointerup',e=>this.up(e));viewport.addEventListener('pointercancel',()=>this.cancelGesture());viewport.addEventListener('lostpointercapture',e=>{if(this.pointers.has(e.pointerId))this.cancelGesture();});viewport.addEventListener('contextmenu',e=>e.preventDefault());
+    viewport.addEventListener('pointerdown',e=>this.down(e));viewport.addEventListener('pointermove',e=>this.move(e));viewport.addEventListener('pointerup',e=>this.up(e));viewport.addEventListener('pointercancel',()=>this.cancelGesture());viewport.addEventListener('lostpointercapture',e=>{if(this.pointers.has(e.pointerId))this.cancelGesture();});viewport.addEventListener('contextmenu',e=>{if(!allowContextMenu())e.preventDefault();});
     viewport.addEventListener('wheel',e=>{e.preventDefault();if(this.playing)return;this.setZoom(this.zoom*Math.exp(-e.deltaY*.0015),e.clientX,e.clientY);},{passive:false});
     this.resizeObserver=new ResizeObserver(()=>this.fit());this.resizeObserver.observe(viewport);globalThis.window?.addEventListener?.('resize',()=>this.fit());
   }
