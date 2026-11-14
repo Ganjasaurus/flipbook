@@ -1,4 +1,4 @@
-const CACHE='flipbook-static-v4';
+const CACHE='flipbook-static-v5';
 const ASSETS=['./','./index.html','./style.css','./app.js','./rf-bridge.js','./model.js','./drawing.js','./studio.js','./starter.js','./storage.js','./audio.js','./export.js','./gif-worker.js','./console.js','./console-kit.js','./vendor/gifenc.js','./favicon.svg','./icons.svg','./manifest.webmanifest','./fonts/dm-sans.woff2'];
 self.addEventListener('install',event=>{self.skipWaiting();event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(ASSETS)));});
 self.addEventListener('activate',event=>event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(key=>key.startsWith('flipbook-static-')&&key!==CACHE).map(key=>caches.delete(key)))).then(()=>self.clients.claim())));

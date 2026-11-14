@@ -121,7 +121,7 @@ test('installRfImportReceiver for flipbook accepts image & audio, rejects unsupp
       },
     });
 
-    // Duplicate token re-acks without double importing
+    // In-flight duplicate while onImport is running does not double-import
     msgListeners[0]({
       origin: 'https://glyphnote.retrofleshed.com',
       source: fakeSource,
@@ -137,7 +137,27 @@ test('installRfImportReceiver for flipbook accepts image & audio, rejects unsupp
       },
     });
 
-    await new Promise((r) => setTimeout(r, 30));
+    await new Promise((r) => setTimeout(r, 15));
+    assert.equal(received.length, 2);
+    assert.equal(acks.length, 2, 'rf:ack sent post-onImport once per completed import');
+
+    // Post-import duplicate retry re-acks without double importing
+    msgListeners[0]({
+      origin: 'https://glyphnote.retrofleshed.com',
+      source: fakeSource,
+      data: {
+        type: 'rf:import',
+        token: 'tok_wav',
+        from: 'glyphnote',
+        to: 'flipbook',
+        kind: 'audio',
+        name: 'loop.wav',
+        mime: 'audio/wav',
+        bytes: new Uint8Array([82, 73, 70, 70]).buffer,
+      },
+    });
+
+    await new Promise((r) => setTimeout(r, 15));
     assert.equal(received.length, 2);
     assert.equal(received[0].kind, 'image');
     assert.equal(received[0].name, 'painted.png');
@@ -313,10 +333,13 @@ test('flipbook sw.js, index.html, and app.js include all required rf-bridge & so
   const sw = await readFile(new URL('../dist/sw.js', import.meta.url), 'utf8');
   assert.match(sw, /'\.\/rf-bridge\.js'/);
   assert.match(sw, /ignoreSearch:\s*true/);
-  assert.doesNotMatch(sw, /flipbook-static-v3/);
+  assert.match(sw, /flipbook-static-v5/);
+  assert.doesNotMatch(sw, /flipbook-static-v[34]/);
 
   const html = await readFile(new URL('../dist/index.html', import.meta.url), 'utf8');
   assert.match(html, /id="sound-file"[^>]*accept="audio\/\*"/);
+  assert.match(html, /<input type="file" id="project-file" hidden>/);
+  assert.doesNotMatch(html, /id="project-file"[^>]*accept=/);
 
   const app = await readFile(new URL('../dist/app.js', import.meta.url), 'utf8');
   assert.match(app, /id="import-sound"/);
