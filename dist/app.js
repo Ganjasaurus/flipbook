@@ -5,6 +5,7 @@ import { starterProject } from './starter.js';
 import { AudioStudio, Microphone } from './audio.js';
 import { saveProject, listProjects, loadProject, deleteProject } from './storage.js';
 import { download, filename, png, exportGIF, exportVideo, exportFrames, videoType } from './export.js';
+import { sendToRfApp, installRfImportReceiver } from './rf-bridge.js';
 
 const $=id=>document.getElementById(id),icon=name=>`<svg aria-hidden="true"><use href="./icons.svg#${name}"/></svg>`;
 const escape=text=>String(text).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -134,8 +135,40 @@ async function openShelf(){
 }
 function projectDownload(){const text=JSON.stringify(project);if(text.length>LIMITS.fileBytes)throw new Error('This project is over 32 MB. Remove unused recordings or some picture frames before exporting.');download(new Blob([text],{type:'application/json'}),`${filename(project)}.flipbook`);backupRevision=revision;toast('Your editable flipbook is ready to keep.');}
 function openExport(){
-  openModal('Made something? Keep it.',`<p>Little ideas deserve a life outside the studio.</p><div class="export-list"><button class="export-card main-export" data-export="project">${icon('folder')}<span><strong>Editable flipbook</strong><small>All frames, layers, and sounds. Open it here again.</small></span>${icon('chevron')}</button><button class="export-card" data-export="gif">${icon('frames')}<span><strong>Animated GIF</strong><small>A shareable animation · 640 px wide · no sound</small></span>${icon('chevron')}</button><button class="export-card" data-export="video" ${videoType()&&HTMLCanvasElement.prototype.captureStream?'':'disabled'}>${icon('play')}<span><strong>Video with sound</strong><small>${videoType()&&HTMLCanvasElement.prototype.captureStream?'WebM or MP4, depending on your browser':'Not supported here · GIF and frames still work'}</small></span>${icon('chevron')}</button><button class="export-card" data-export="png">${icon('image')}<span><strong>This frame as a picture</strong><small>Full-size PNG · frame ${index+1}</small></span>${icon('chevron')}</button><button class="export-card" data-export="frames">${icon('duplicate')}<span><strong>Every frame</strong><small>Full-size PNG pictures + timing notes, in a ZIP</small></span>${icon('chevron')}</button><button class="export-card" data-export="wav">${icon('music')}<span><strong>Animation soundtrack</strong><small>All sound cues mixed into a WAV audio file</small></span>${icon('chevron')}</button></div><p class="export-note">Device saves live in this browser. Download an editable file for a lasting backup. GIF uses up to 256 colors per frame.</p>`,'LET YOUR IDEAS OUT');
+  const canVideo=Boolean(videoType()&&globalThis.HTMLCanvasElement?.prototype?.captureStream);
+  openModal('Made something? Keep it.',`<p>Little ideas deserve a life outside the studio.</p><div class="export-list"><button class="export-card main-export" data-export="project">${icon('folder')}<span><strong>Editable flipbook</strong><small>All frames, layers, and sounds. Open it here again.</small></span>${icon('chevron')}</button><button class="export-card" data-export="gif">${icon('frames')}<span><strong>Animated GIF</strong><small>A shareable animation · 640 px wide · no sound</small></span>${icon('chevron')}</button><button class="export-card" data-export="video" ${canVideo?'':'disabled'}>${icon('play')}<span><strong>Video with sound</strong><small>${canVideo?'WebM or MP4, depending on your browser':'Not supported here · GIF and frames still work'}</small></span>${icon('chevron')}</button><button class="export-card" data-export="png">${icon('image')}<span><strong>This frame as a picture</strong><small>Full-size PNG · frame ${index+1}</small></span>${icon('chevron')}</button><button class="export-card" data-export="frames">${icon('duplicate')}<span><strong>Every frame</strong><small>Full-size PNG pictures + timing notes, in a ZIP</small></span>${icon('chevron')}</button><button class="export-card" data-export="wav">${icon('music')}<span><strong>Animation soundtrack</strong><small>All sound cues mixed into a WAV audio file</small></span>${icon('chevron')}</button></div><div class="rf-bridge-panel"><span class="eyebrow">SEND STRAIGHT TO ANOTHER STUDIO</span><div class="rf-bridge-group"><strong>Send Current Frame .PNG</strong><label class="check-row rf-sticker-row"><input id="rf-sticker-png" type="checkbox" checked> Transparent sticker (hide paper color)</label><div class="rf-bridge-chips"><button type="button" class="rf-chip-btn" data-rf-format="png" data-rf-to="fotoe" data-rf-role="photo">Fotoe</button><button type="button" class="rf-chip-btn" data-rf-format="png" data-rf-to="soulcode" data-rf-role="sprite">Soulcode</button><button type="button" class="rf-chip-btn" data-rf-format="png" data-rf-to="masque" data-rf-role="mouth">MASQUE · Mouth</button><button type="button" class="rf-chip-btn" data-rf-format="png" data-rf-to="zaypen" data-rf-role="canvas">Zaypen</button></div></div><div class="rf-bridge-group"><strong>Send Animated .GIF</strong><div class="rf-bridge-chips"><button type="button" class="rf-chip-btn" data-rf-format="gif" data-rf-to="ripperclip" data-rf-role="media">RipperClip</button><button type="button" class="rf-chip-btn" data-rf-format="gif" data-rf-to="littleloop" data-rf-role="photo">Littleloop</button></div></div><div class="rf-bridge-group"><strong>Send Animation Video (.mp4 / .webm)</strong><div class="rf-bridge-chips"><button type="button" class="rf-chip-btn" data-rf-format="video" data-rf-to="ripperclip" data-rf-role="clip" ${canVideo?'':'disabled'}>RipperClip</button><button type="button" class="rf-chip-btn" data-rf-format="video" data-rf-to="littleloop" data-rf-role="video" ${canVideo?'':'disabled'}>Littleloop</button></div></div><div class="rf-bridge-group"><strong>Send Soundtrack .WAV</strong><div class="rf-bridge-chips"><button type="button" class="rf-chip-btn" data-rf-format="wav" data-rf-to="ripperclip" data-rf-role="audio">RipperClip</button><button type="button" class="rf-chip-btn" data-rf-format="wav" data-rf-to="glyphnote" data-rf-role="sample">Glyphnote</button><button type="button" class="rf-chip-btn" data-rf-format="wav" data-rf-to="soulcode" data-rf-role="sfx">Soulcode</button></div></div></div><p class="export-note">Device saves live in this browser. Download an editable file for a lasting backup. GIF uses up to 256 colors per frame.</p>`,'LET YOUR IDEAS OUT');
+  document.querySelectorAll('[data-rf-format]').forEach(button=>button.onclick=()=>sendFlipbookToApp(button.dataset.rfFormat,button.dataset.rfTo,button.dataset.rfRole||''));
   document.querySelectorAll('[data-export]').forEach(button=>button.onclick=()=>runExport(button.dataset.export));
+}
+function sendFlipbookToApp(format,to,role=''){
+  const p=project,frameIdx=index,sticker=Boolean($('rf-sticker-png')?.checked);
+  const kind=format==='video'?'video':format==='wav'?'audio':'image';
+  void sendToRfApp({
+    from:'flipbook',to,kind,role,
+    producePayload:async()=>{
+      if(format==='png'){
+        const blob=await png(renderer.frame(p,frameIdx,!sticker));
+        return {blob,name:`${filename(p)}-frame-${frameIdx+1}${sticker?'-sticker':''}.png`,mime:'image/png'};
+      }
+      if(format==='gif'){toast('Putting your GIF together…');return {blob:await exportGIF(p,renderer),name:`${filename(p)}.gif`,mime:'image/gif'};}
+      if(format==='video'){toast('Recording your animation video…');const res=await exportVideo(p,renderer,audio);return {blob:res.blob,name:`${filename(p)}.${res.extension}`,mime:res.blob.type||'video/webm'};}
+      toast('Mixing your soundtrack…');return {blob:await audio.mix(p),name:`${filename(p)}.wav`,mime:'audio/wav'};
+    },
+    onStatus:toast
+  }).catch(errorMessage);
+}
+async function importSoundFile(file,customName=''){
+  if(!file)return;
+  const r=await audio.importFile(file,customName||file.name||'Imported sound');
+  const total=Object.values(project.recordings).reduce((n,item)=>n+item.data.length,0)+r.data.length;
+  if(total>LIMITS.audioBytes)throw new Error('Your sound collection is full. Remove an old recording first.');
+  const {id,...record}=r,cues=project.frames[index].cues;
+  const nextFrames=cues.length<8?project.frames.map((f,i)=>i===index?{...f,cues:[...f.cues,{sound:id,volume:.7}]}:f):project.frames;
+  commit({...project,recordings:{...project.recordings,[id]:record},frames:nextFrames});
+  renderSoundCues();renderRecordings();
+  if($('record-info'))$('record-info').textContent=`Imported “${record.name}” (${record.duration.toFixed(1)}s).`;
+  toast(cues.length<8?`Added “${record.name}” to frame ${index+1}.`:`Saved “${record.name}”. Frame ${index+1} already has 8 sounds.`);
+  return id;
 }
 async function runExport(type){
   try{
@@ -162,7 +195,8 @@ function renderRecordings(){const root=$('recordings');if(!root)return;root.inne
     openModal('Remove this recording?',`<p>“${escape(r.name)}” and its sound cues will be removed from every frame. Undo can restore them.</p><div class="modal-actions"><button id="keep-recording" class="button">Keep it</button><button id="delete-recording" class="button danger">Remove recording</button></div>`);$('keep-recording').onclick=openSounds;$('delete-recording').onclick=()=>{const recordings={...project.recordings};delete recordings[id];commit({...project,recordings,frames:project.frames.map(f=>({...f,cues:f.cues.filter(c=>c.sound!==id)}))});audio.clear();openSounds();};
   };item.append(preview,name,add,remove);root.append(item);}}
 function openSounds(){
-  openModal('Give your story a voice.',`<p>Sounds start on <strong>frame ${index+1}</strong>. Preview a sound, then add it to this moment.</p><div class="sound-grid">${SFX.map(sound=>`<div class="sound-card"><button class="sound-preview" data-preview="${sound}"><span>${soundGlyphs[sound]}</span><span>${soundNames[sound]}</span></button><button class="text-button" data-add-sound="${sound}">+ Add to frame</button></div>`).join('')}</div><span class="eyebrow">ON THIS FRAME</span><div class="sound-cues" id="sound-cues"></div><div class="record-box"><button id="record" class="record-button">${icon('mic')}<span>Record your own sound</span></button><p id="record-info">Up to 30 seconds. Your microphone starts only when you tap Record. Recordings stay on your device and in exported project files.</p></div><div id="recordings"></div><p class="export-note">Clips play until they finish or the animation stops. Video and WAV include sound; GIF does not.</p>`,'A POP. A BOING. YOUR OWN VOICE.');
+  openModal('Give your story a voice.',`<p>Sounds start on <strong>frame ${index+1}</strong>. Preview a sound, then add it to this moment.</p><div class="sound-grid">${SFX.map(sound=>`<div class="sound-card"><button class="sound-preview" data-preview="${sound}"><span>${soundGlyphs[sound]}</span><span>${soundNames[sound]}</span></button><button class="text-button" data-add-sound="${sound}">+ Add to frame</button></div>`).join('')}</div><span class="eyebrow">ON THIS FRAME</span><div class="sound-cues" id="sound-cues"></div><div class="record-box"><div class="record-actions"><button id="record" class="record-button" type="button">${icon('mic')}<span>Record your own sound</span></button><button id="import-sound" class="button import-sound-button" type="button">${icon('music')}<span>Import sound file</span></button></div><p id="record-info">Up to 30 seconds. Tap Record for your microphone, or import any audio file. Sounds stay on your device and in exported project files.</p></div><div id="recordings"></div><p class="export-note">Clips play until they finish or the animation stops. Video and WAV include sound; GIF does not.</p>`,'A POP. A BOING. YOUR OWN VOICE.');
+  $('import-sound').onclick=()=>$('sound-file').click();
   modalCleanup=()=>mic.stop(true);
   document.querySelectorAll('[data-preview]').forEach(button=>button.onclick=()=>audio.preview(button.dataset.preview,project).catch(errorMessage));document.querySelectorAll('[data-add-sound]').forEach(button=>button.onclick=()=>addCue(button.dataset.addSound));renderSoundCues();renderRecordings();
   const reset=()=>{const button=$('record');if(button){button.disabled=false;button.classList.remove('recording');button.innerHTML=icon('mic')+'<span>Record another sound</span>';}};
@@ -196,12 +230,55 @@ $('add-frame').onclick=()=>newFrame();$('duplicate-frame').onclick=()=>newFrame(
 $('new-project').onclick=openNew;$('shelf').onclick=openShelf;$('export').onclick=openExport;$('sounds').onclick=openSounds;$('help').onclick=openHelp;$('toolbox-help').onclick=openHelp;$('close-modal').onclick=closeModal;$('modal').addEventListener('cancel',()=>{if(busy)exportController?.abort();modalCleanup?.();modalCleanup=null;});$('modal').addEventListener('click',e=>{if(e.target===$('modal')){const r=$('modal').getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)closeModal();}});
 $('fullscreen').onclick=async()=>{try{if(document.fullscreenElement)await document.exitFullscreen();else if(document.documentElement.requestFullscreen)await document.documentElement.requestFullscreen();else toast('For more room, add Flipbook to your Home Screen from your browser menu.');}catch{toast('Full screen is not available in this browser.');}};
 $('project-file').onchange=async e=>{const file=e.target.files[0];e.target.value='';if(!file)return;try{if(file.size>LIMITS.fileBytes)throw new Error('Choose a Flipbook file smaller than 32 MB.');const parsed=parseProject(await file.text());parsed.id=uid();await replaceProject(parsed);toast('Your flipbook is open. Let’s make it move.');}catch(error){errorMessage(error);}};
-$('import-image').onclick=()=>$('image-file').click();$('image-file').onchange=async e=>{
-  const file=e.target.files[0];e.target.value='';if(!file)return;const projectId=project.id,frameId=project.frames[index].id,layerId=layer;
-  try{if(file.size>8*1024*1024)throw new Error('Choose a picture smaller than 8 MB.');if(!['image/png','image/jpeg','image/webp'].includes(file.type))throw new Error('Choose a PNG, JPEG, or WebP picture.');const url=URL.createObjectURL(file);let image;try{image=new Image();image.src=url;await image.decode();}finally{URL.revokeObjectURL(url);}if(image.width*image.height>24e6)throw new Error('Choose a picture smaller than 24 megapixels.');
-    if(project.id!==projectId||project.frames[index].id!==frameId||layer!==layerId)throw new Error('The frame changed. Please add that picture again.');const scale=Math.min(1,project.width/image.width,project.height/image.height),w=Math.max(1,Math.round(image.width*scale)),h=Math.max(1,Math.round(image.height*scale)),c=canvas(w,h);context(c).drawImage(image,0,0,w,h);const src=c.toDataURL('image/png');let total=src.length;for(const f of project.frames)for(const ops of Object.values(f.cells))for(const op of ops)total+=op.src?.length??0;if(total>LIMITS.imageBytes)throw new Error('This flipbook has too many pictures. Start a new one for this image.');renderer.images.set(src,c);commit(appendOperation(project,index,layer,{kind:'image',src,at:[(project.width-w)/2,(project.height-h)/2],width:w,height:h}));toast('Picture added to this layer. Layer options can move it.');
-  }catch(error){errorMessage(error);}
-};
+async function decodePicture(file){
+  if(typeof globalThis.createImageBitmap==='function'){try{return await createImageBitmap(file);}catch{}}
+  const url=URL.createObjectURL(file);try{const image=new Image();image.src=url;if(typeof image.decode==='function')await image.decode();return image;}finally{URL.revokeObjectURL(url);}
+}
+async function importImageFile(file){
+  if(!file)return;const projectId=project.id,frameId=project.frames[index].id,layerId=layer;
+  if(file.size>8*1024*1024)throw new Error('Choose a picture smaller than 8 MB.');
+  if(!/^image\//i.test(file.type||'')&&!/\.(png|jpe?g|webp|gif|bmp|svg|avif)$/i.test(file.name||''))throw new Error('Choose a picture file (PNG, JPEG, WebP, GIF, or SVG).');
+  const image=await decodePicture(file);
+  if(image.width*image.height>24e6)throw new Error('Choose a picture smaller than 24 megapixels.');
+  if(project.id!==projectId||project.frames[index].id!==frameId||layer!==layerId)throw new Error('The frame changed. Please add that picture again.');
+  const scale=Math.min(1,project.width/image.width,project.height/image.height),w=Math.max(1,Math.round(image.width*scale)),h=Math.max(1,Math.round(image.height*scale)),c=canvas(w,h);
+  context(c).drawImage(image,0,0,w,h);image.close?.();
+  const src=c.toDataURL('image/png');let total=src.length;for(const f of project.frames)for(const ops of Object.values(f.cells))for(const op of ops)total+=op.src?.length??0;
+  if(total>LIMITS.imageBytes)throw new Error('This flipbook has too many pictures. Start a new one for this image.');
+  renderer.images.set(src,c);commit(appendOperation(project,index,layer,{kind:'image',src,at:[(project.width-w)/2,(project.height-h)/2],width:w,height:h}));
+  toast('Picture added to this layer. Layer options can move it.');
+}
+$('sound-file').onchange=async e=>{const file=e.target.files[0];e.target.value='';if(!file)return;try{await importSoundFile(file);}catch(error){errorMessage(error);}};
+if(typeof window!=='undefined'&&typeof window.addEventListener==='function'){
+  const isExternalFileDrag=e=>{const types=Array.from(e.dataTransfer?.types??[]);return !types.includes('text/flipbook-frame')&&types.includes('Files');};
+  window.addEventListener('dragover',e=>{if(!isExternalFileDrag(e))return;e.preventDefault();if(e.dataTransfer)e.dataTransfer.dropEffect='copy';});
+  window.addEventListener('drop',async e=>{
+    if(!isExternalFileDrag(e))return;e.preventDefault();if(busy)return;
+    for(const file of Array.from(e.dataTransfer?.files??[])){
+      const lower=String(file.name||'').toLowerCase(),type=String(file.type||'').toLowerCase();
+      try{
+        if(lower.endsWith('.flipbook')||(type==='application/json'&&lower.endsWith('.json'))){
+          if(file.size>LIMITS.fileBytes)throw new Error('Choose a Flipbook file smaller than 32 MB.');
+          const parsed=parseProject(await file.text());parsed.id=uid();await replaceProject(parsed);toast('Your flipbook is open. Let’s make it move.');break;
+        }else if(type.startsWith('image/')||/\.(png|jpe?g|webp|gif|bmp|svg|avif)$/i.test(lower)){await importImageFile(file);}
+        else if(type.startsWith('audio/')||/\.(wav|mp3|ogg|m4a|aac|webm|flac)$/i.test(lower)){await importSoundFile(file);}
+      }catch(error){errorMessage(error);}
+    }
+  });
+}
+installRfImportReceiver({
+  appId:'flipbook',
+  accepts:['image','audio'],
+  onImport:async item=>{
+    try{
+      for(let i=0;i<50&&!ready;i++)await new Promise(r=>setTimeout(r,20));
+      if(item.kind==='image'||item.mime.startsWith('image/'))await importImageFile(item.file);
+      else if(item.kind==='audio'||item.mime.startsWith('audio/'))await importSoundFile(item.file,item.name);
+    }catch(error){errorMessage(error);}
+  }
+});
+$('import-image').onclick=()=>$('image-file').click();$('image-file').onchange=async e=>{const file=e.target.files[0];e.target.value='';if(!file)return;try{await importImageFile(file);}catch(error){errorMessage(error);}};
+
 document.addEventListener('keydown',e=>{
   if(e.target.closest?.('input,textarea,select')||$('modal').open||busy)return;const key=e.key.toLowerCase();
   if(e.target.closest?.('button,a')&&(key==='enter'||key===' '))return;
@@ -219,6 +296,6 @@ async function boot(){
   try{await document.fonts?.ready;}
   catch(error){toast('Device saves could not be opened. Use Keep it to download a backup.');}
   ready=true;render();selectTool('draw');studio.resetView();requestAnimationFrame(()=>studio.resetView());scheduleSave();
-  if('serviceWorker'in navigator&&location.protocol==='https:')navigator.serviceWorker.register('./sw.js').catch(()=>{});
+  if('serviceWorker'in navigator&&globalThis.location?.protocol==='https:')navigator.serviceWorker.register('./sw.js').catch(()=>{});
 }
 boot();

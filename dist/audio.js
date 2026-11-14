@@ -1,4 +1,4 @@
-import { SFX, timeline, uid } from './model.js';
+import { SFX, timeline, uid, clamp } from './model.js';
 
 export const SAMPLE_RATE=24000;
 export function synthesize(name,rate=SAMPLE_RATE) {
@@ -64,6 +64,44 @@ export class AudioStudio {
       for(let i=0;i<count;i++){const sourceIndex=Math.min(buffer.length-1,Math.floor(i*buffer.sampleRate/SAMPLE_RATE));let value=0;for(let ch=0;ch<buffer.numberOfChannels;ch++)value+=buffer.getChannelData(ch)[sourceIndex]/buffer.numberOfChannels;samples[start+i]+=value*cue.volume*.7;}
     }return wav(samples,SAMPLE_RATE);
   }
+  async importFile(file,customName=''){
+    if(!file||!file.size)throw new Error('Choose a sound file to import.');
+    if(file.size>40*1024*1024)throw new Error('Choose a sound file smaller than 40 MB.');
+    const ctx=await this.unlock();
+    const bytes=await file.arrayBuffer();
+    let decoded;
+    try{decoded=await ctx.decodeAudioData(bytes.slice(0));}
+    catch{throw new Error('That sound file could not be decoded. Try WAV, MP3, OGG, or M4A.');}
+    return encodeAudioBufferToRecording(decoded,customName||file.name||'Imported sound');
+  }
+}
+export async function blobToDataUrl(blob,mime=blob.type||'application/octet-stream'){
+  const bytes=new Uint8Array(await blob.arrayBuffer());
+  let binary='';const chunk=0x8000;
+  for(let i=0;i<bytes.length;i+=chunk)binary+=String.fromCharCode.apply(null,bytes.subarray(i,i+chunk));
+  return `data:${mime};base64,${btoa(binary)}`;
+}
+export async function encodeAudioBufferToRecording(buffer,name='Imported sound'){
+  if(!buffer||!buffer.length||!(buffer.duration>=0.01))throw new Error('That sound is too short to add.');
+  const cappedDuration=Math.min(30,buffer.duration);
+  const outRate=Math.max(8000,Math.min(SAMPLE_RATE,Math.round(buffer.sampleRate||SAMPLE_RATE)));
+  const outLength=Math.max(Math.ceil(0.01*outRate),Math.min(Math.floor(30*outRate),Math.round(cappedDuration*outRate)));
+  const mono=new Float32Array(outLength);
+  const channels=Math.max(1,buffer.numberOfChannels||1);
+  const channelArrays=[];
+  for(let ch=0;ch<channels;ch++)channelArrays.push(buffer.getChannelData(ch));
+  const ratio=(buffer.sampleRate||outRate)/outRate;
+  for(let i=0;i<outLength;i++){
+    const srcIdx=Math.min(buffer.length-1,Math.floor(i*ratio));
+    let sum=0;
+    for(let ch=0;ch<channels;ch++)sum+=channelArrays[ch][srcIdx];
+    mono[i]=clamp(sum/channels,-1,1);
+  }
+  const duration=clamp(Number((outLength/outRate).toFixed(3)),0.01,30);
+  const wavBlob=wav(mono,outRate);
+  const data=await blobToDataUrl(wavBlob,'audio/wav');
+  const cleanName=String(name||'Imported sound').replace(/\.[^.]+$/,'').replace(/\s+/g,' ').trim().slice(0,60)||'Imported sound';
+  return {id:uid(),name:cleanName,duration,data};
 }
 export function wav(samples,rate){
   const data=new ArrayBuffer(44+samples.length*2),view=new DataView(data),str=(offset,text)=>{for(let i=0;i<text.length;i++)view.setUint8(offset+i,text.charCodeAt(i));};

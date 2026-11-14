@@ -65,7 +65,8 @@
 <dialog id="modal" aria-labelledby="modal-title"><div class="modal-top"><span class="eyebrow" id="modal-eyebrow">A LITTLE MORE MAGIC</span><button id="close-modal" class="icon-button" aria-label="Close dialog"><svg><use href="./icons.svg#close"/></svg></button></div><div id="modal-content"></div></dialog>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <input type="file" id="project-file" accept=".flipbook,application/json" hidden>
-<input type="file" id="image-file" accept="image/png,image/jpeg,image/webp" hidden>
+<input type="file" id="image-file" accept="image/*" hidden>
+<input type="file" id="sound-file" accept="audio/*" hidden>
 <noscript><p class="no-script">Flipbook needs JavaScript to bring your drawings to life. Enable JavaScript, then reload.</p></noscript>
 <script type="module" src="./console.js"></script>
 <script type="module" src="./app.js"></script>
